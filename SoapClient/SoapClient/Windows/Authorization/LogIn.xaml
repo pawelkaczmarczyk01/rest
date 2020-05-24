@@ -1,0 +1,21 @@
+﻿<Window x:Class="SoapClient.Windows.Authorization.LogIn"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SoapClient.Windows.Authorization"
+        mc:Ignorable="d"
+        Title="Logowanie" Height="450" Width="800">
+    <Grid>
+        <TextBox  Name="LoginTextBox" GotFocus="LoginEnter" LostFocus="LoginLeave" TextAlignment="Center" Foreground="Silver" Height="50" Margin="175,47,175,0" FontSize="30" TextWrapping="Wrap" Text="Login" VerticalAlignment="Top"/>
+
+        <TextBox IsEnabled="false" Name="PasswordTextBox" TextAlignment="Center" Foreground="Black" FontSize="30" Height="50" Margin="175,143,175,0" Text="Hasło" VerticalAlignment="Top"/>
+
+        <PasswordBox FontSize="30" Name="PasswordTextBoxP" GotFocus="PasswordEnter" LostFocus="PasswordLeave" Height="50" Margin="175,143,175,0" HorizontalContentAlignment="Center" VerticalAlignment="Top" />
+
+        <Button Content="Zaloguj się" Height="62" Margin="175,0,458,56" VerticalAlignment="Bottom" Click="Login" FontSize="20"/>
+
+        <Button Content="Zarejestruj się" Height="62" Margin="448,0,175,56" VerticalAlignment="Bottom" Click="SignUp" FontSize="20"/>
+
+    </Grid>
+</Window>

@@ -43,7 +43,6 @@ public class AuthServiceImpl implements AuthService {
                         .withUserLogin(register. getUserLogin())
                         .withUserPassword(register.getUserPassword());
                 userDAO.save(user);
-                throw new ServiceException("User has been registered");
             } else {
                 throw new ServiceException("Passwords is different");
             }

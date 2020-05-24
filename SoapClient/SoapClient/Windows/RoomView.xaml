@@ -1,0 +1,98 @@
+﻿<Window x:Class="SoapClient.Windows.RoomView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SoapClient.Windows"
+        mc:Ignorable="d"
+        Title="RoomView" Height="1000" Width="1230" ResizeMode="NoResize">
+    <ScrollViewer HorizontalScrollBarVisibility="Auto">
+        <Grid>
+            <Menu Height="40" HorizontalAlignment="Left" Name="MenuData" VerticalAlignment="Top" Width="auto">
+                <MenuItem Name="MenuFirstTab" Header="Menu" Height="40" Width="auto">
+                    <Label MouseDown="Logout">
+                        <Label.Content>
+                            <AccessText Text="{Binding Path=Login, StringFormat=Wyloguj: {0}}" TextAlignment="Center"/>
+                        </Label.Content>
+                    </Label>
+                </MenuItem>
+                <MenuItem PreviewMouseDown="GoBack" Header="Wróć" Height="40" Width="auto"/>
+            </Menu>
+            <Button Name="ButtonData" Style="{DynamicResource MaterialDesignRaisedDarkButton}" FontSize="15" MinWidth="40" Height="Auto" Click="Logout" Margin="987,10,15,914">
+                <Button.Content>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Wyloguj: "/>
+                        <TextBlock Text="{Binding Path=Login}"/>
+                    </StackPanel>
+                </Button.Content>
+            </Button>
+            <Border Name="BorderBox" Width="1170" MaxHeight="850" Margin="7" Padding="20 20 20 0" Background="Azure" CornerRadius="8" BorderBrush="CornflowerBlue" BorderThickness="5">
+                <Grid Name="RoomDetails">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition MaxWidth="350"></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="80"></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition Height="250"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Padding="5 5 5 5" Margin="20 0 0 0" FontWeight="Bold" FontSize="30" Text="{Binding Path=Name}" HorizontalAlignment="Left" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Padding="5 5 5 5" Margin="0 0 20 0" FontWeight="Bold" FontSize="30" Text="{Binding Path=PriceToShow}" HorizontalAlignment="Right" TextWrapping="Wrap"/>
+                    <Rectangle Grid.Row="0" Grid.ColumnSpan="2" Margin="15 45 15 20" StrokeThickness="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="CornflowerBlue" Height="4"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Padding="5 5 5 5" Margin="20 0 0 0" FontWeight="Bold" FontSize="18" Text="{Binding Path=Description}" HorizontalAlignment="Left" TextWrapping="Wrap"/>
+                    <Image Grid.RowSpan="3" Grid.ColumnSpan="2" Width="900" Height="600" Margin="350 -130 0 0" Source="{Binding Image}">
+                        <Image.Clip>
+                            <RectangleGeometry RadiusX="20" RadiusY="20" Rect="30 0 700 500"/>
+                        </Image.Clip>
+                    </Image>
+                    <TextBlock Grid.Row="2" Margin="15,16,15,187" FontWeight="Bold" FontSize="27" TextAlignment="Center" Width="320">
+                    Wyposażenie
+                    </TextBlock>
+                    <Rectangle Grid.Row="2" Grid.ColumnSpan="3" Margin="15 -100 15 20" StrokeThickness="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="CornflowerBlue" Height="4"/>
+                    <TextBlock Grid.Row="2" Margin="34,102,186,1" FontWeight="Bold" FontSize="20">
+                    Łazienka:
+                    </TextBlock>
+                    <CheckBox Grid.Row="2" Margin="155,98,160,120" IsChecked="{Binding Path=IsBathroom}" IsEnabled="false" Foreground="AliceBlue">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="2" ScaleY="2" />
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                    <TextBlock Grid.Row="2" Margin="34,191,186,25" FontWeight="Bold" FontSize="20">
+                    Biurko:
+                    </TextBlock>
+                    <CheckBox Grid.Row="2" Margin="154,185,160,33" IsChecked="{Binding Path=IsDesk}" IsEnabled="false">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="2" ScaleY="2" />
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                    <TextBlock Grid.Row="2" Margin="86,102,554,124" FontWeight="Bold" FontSize="20" Grid.Column="1">
+                    Lodówka:
+                    </TextBlock>
+                    <CheckBox Grid.Row="2" Margin="208,98,526,120" Grid.Column="1" IsChecked="{Binding Path=IsFridge}" IsEnabled="false">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="2" ScaleY="2" />
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                    <TextBlock Grid.Row="2" Margin="86,191,554,25" FontWeight="Bold" FontSize="20" Grid.Column="1">
+                    Sejf:
+                    </TextBlock>
+                    <CheckBox Grid.Row="2" Margin="208,188,526,30" Grid.Column="1" IsChecked="{Binding Path=IsSafe}" IsEnabled="false">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="2" ScaleY="2" />
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                    <TextBlock Grid.Row="2" Margin="473,102,167,124" FontWeight="Bold" FontSize="20" Grid.Column="1">
+                    Telewizor:
+                    </TextBlock>
+                    <CheckBox Grid.Row="2" Margin="589,98,145,120" Grid.Column="1" IsChecked="{Binding Path=IsTv}" IsEnabled="false">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="2" ScaleY="2" />
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                    <Button Name="ReservationButton" Visibility="Hidden" Content="Zarezerwuj" Grid.Row="2" Margin="473,181,137,21" FontWeight="Bold" FontSize="20" Grid.Column="1" Height="Auto" Click="ReserveRoom"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Window>

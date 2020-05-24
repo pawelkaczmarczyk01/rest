@@ -1,0 +1,75 @@
+﻿<Window x:Class="SoapClient.Windows.Admin.EditRoomView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SoapClient.Windows.Admin"
+        mc:Ignorable="d"
+        Title="EditRoomView" Height="1000" Width="1800" ResizeMode="NoResize">
+    <Grid>
+        <TextBlock Margin="751,60,842,859" Text="Wybierz hotel" FontSize="20" Foreground="IndianRed" FontWeight="Bold" ></TextBlock>
+        <ComboBox Name="HotelsSelector" ItemsSource="{Binding Path=HotelsList}" SelectedValue="HotelId" DisplayMemberPath="Name" FontSize="20" Margin="952,56,558,866">
+        </ComboBox>
+        <TextBox Name="RoomName" GotFocus="RoomNameEnter" LostFocus="RoomNameLeave" Height="40" Margin="751,156,704,0" FontSize="20" TextWrapping="Wrap" Text="Podaj nazwę pokoju" TextAlignment="Center" VerticalAlignment="Top"/>
+        <TextBox Name="RoomDescription" GotFocus="RoomDescriptionEnter" LostFocus="RoomDescriptionLeave" Height="184" Margin="429,240,346,0" FontSize="20" TextWrapping="Wrap" Text="Wpisz opis pokoju" VerticalAlignment="Top"/>
+        <Button Content="Dodaj zdjęcie" Height="40" Margin="752,740,704,0" FontSize="20"  VerticalAlignment="Top" Click="AddRoomImage" RenderTransformOrigin="0.5,0.5">
+            <Button.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="0.019"/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Button.RenderTransform>
+        </Button>
+        <TextBlock Name="RoomImageName" Text="Nie dodano zdjęcia" FontWeight="Bold" Height="65" Margin="785,796,726,0" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" Width="397"/>
+        <TextBox Name="RoomPrice" GotFocus="RoomPriceEnter" LostFocus="RoomPriceLeave" Height="40" Margin="513,482,942,0" FontSize="20" TextWrapping="Wrap" Text="Podaj cenę za dobę" TextAlignment="Center" VerticalAlignment="Top"/>
+        <TextBox Name="RoomQuantityOfPeople" GotFocus="RoomQuantityOfPeopleEnter" LostFocus="RoomQuantityOfPeopleLeave" Height="40" Margin="1033,482,422,0" FontSize="20" TextWrapping="Wrap" Text="Podaj liczbę osób" TextAlignment="Center" VerticalAlignment="Top"/>
+        <Button Name="AddRoomButton" Content="Zapisz zmiany" Height="40" Margin="751,869,704,0" FontSize="20" VerticalAlignment="Top" Click="AddRoom"/>
+
+        <TextBlock Margin="853,554,751,337" FontWeight="Bold" FontSize="27" TextAlignment="Center">
+                    Wyposażenie
+        </TextBlock>
+
+        <TextBlock Margin="315,638,1385,279" FontWeight="Bold" FontSize="20">
+                    Łazienka:
+        </TextBlock>
+        <CheckBox Name="Bathroom" Margin="420,641,1333,276">
+            <CheckBox.LayoutTransform>
+                <ScaleTransform ScaleX="2" ScaleY="2" />
+            </CheckBox.LayoutTransform>
+        </CheckBox>
+        <TextBlock Margin="601,640,1121,277" FontWeight="Bold" FontSize="20">
+                    Biurko:
+        </TextBlock>
+        <CheckBox Name="Desk" Margin="691,641,1061,276">
+            <CheckBox.LayoutTransform>
+                <ScaleTransform ScaleX="2" ScaleY="2" />
+            </CheckBox.LayoutTransform>
+        </CheckBox>
+        <TextBlock Margin="868,640,830,277" FontWeight="Bold" FontSize="20">
+                    Lodówka:
+        </TextBlock>
+        <CheckBox Name="Fridge" Margin="971,642,777,275">
+            <CheckBox.LayoutTransform>
+                <ScaleTransform ScaleX="2" ScaleY="2" />
+            </CheckBox.LayoutTransform>
+        </CheckBox>
+        <TextBlock Margin="1180,640,566,277" FontWeight="Bold" FontSize="20">
+                    Sejf:
+        </TextBlock>
+        <CheckBox Name="Safe" Margin="1240,639,507,278">
+            <CheckBox.LayoutTransform>
+                <ScaleTransform ScaleX="2" ScaleY="2" />
+            </CheckBox.LayoutTransform>
+        </CheckBox>
+        <TextBlock Margin="1427,640,263,277" FontWeight="Bold" FontSize="20">
+                    Telewizor:
+        </TextBlock>
+        <CheckBox Name="Tv" Margin="1528,640,216,277">
+            <CheckBox.LayoutTransform>
+                <ScaleTransform ScaleX="2" ScaleY="2" />
+            </CheckBox.LayoutTransform>
+        </CheckBox>
+    </Grid>
+</Window>

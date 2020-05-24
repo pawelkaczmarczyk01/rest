@@ -1,0 +1,42 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Contracts.ViewModels.ReservationView
+{
+    public class ReservationVM
+    {
+        public int ReservationId { get; set; }
+        public int RoomId { get; set; }
+        public DateTime DateFrom { get; set; }
+        public DateTime DateTo { get; set; }
+        public string DateFromString
+        {
+            get
+            {
+                return DateFrom.ToString("dd.MM.yyyy");
+            }
+        }
+        public string DateToString
+        {
+            get
+            {
+                return DateTo.ToString("dd.MM.yyyy");
+            }
+        }
+
+        public ReservationVM(
+            int reservationId,
+            int roomId,
+            DateTime dateFrom,
+            DateTime dateTo)
+        {
+            ReservationId = reservationId;
+            RoomId = roomId;
+            DateFrom = dateFrom;
+            DateTo = dateTo;
+        }
+    }
+}

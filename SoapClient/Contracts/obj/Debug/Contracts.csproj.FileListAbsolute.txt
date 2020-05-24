@@ -1,0 +1,11 @@
+F:\git\SoapServerProject\SoapClient\Contracts\bin\Debug\Contracts.dll
+F:\git\SoapServerProject\SoapClient\Contracts\bin\Debug\Contracts.pdb
+F:\git\SoapServerProject\SoapClient\Contracts\obj\Debug\Contracts.csprojAssemblyReference.cache
+F:\git\SoapServerProject\SoapClient\Contracts\obj\Debug\Contracts.csproj.CoreCompileInputs.cache
+F:\git\SoapServerProject\SoapClient\Contracts\obj\Debug\Contracts.dll
+F:\git\SoapServerProject\SoapClient\Contracts\obj\Debug\Contracts.pdb
+F:\git\rest\SoapClient\Contracts\bin\Debug\Contracts.dll
+F:\git\rest\SoapClient\Contracts\bin\Debug\Contracts.pdb
+F:\git\rest\SoapClient\Contracts\obj\Debug\Contracts.csproj.CoreCompileInputs.cache
+F:\git\rest\SoapClient\Contracts\obj\Debug\Contracts.dll
+F:\git\rest\SoapClient\Contracts\obj\Debug\Contracts.pdb

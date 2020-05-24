@@ -29,3 +29,4 @@ build/
 
 ### VS Code ###
 .vscode/
+/SoapClient/.vs/SoapClient/v15/Server/sqlite3

@@ -19,7 +19,7 @@ public class AuthEndpoints {
     @Autowired
     private AuthService authService;
 
-    @RequestMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
+    @RequestMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
     public User login(@RequestBody Login login) {
         return authService.login(login);
     }
