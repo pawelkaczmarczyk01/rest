@@ -1,23 +1,15 @@
 ﻿using Contracts.Models;
 using Contracts.ViewModels.HotelsListModels;
 using Contracts.ViewModels.RoomView;
-using SoapClient.HotelSoap;
+using Contracts.WebClientModels.Responses;
+using Newtonsoft.Json;
 using SoapClient.Windows.Authorization;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Net;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace SoapClient.Windows
 {
@@ -29,6 +21,12 @@ namespace SoapClient.Windows
         private List<Room> ListOfRooms { get; set; }
         private int HotelId { get; set; }
         private Account CurrentUser { get; set; }
+
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointFindHotelById = "hotel/findById/";
+        private readonly string EndpointFindRoomById = "room/findById/";
+        private readonly string EndpointGetAllHotels = "hotel/findAll";
+        private readonly string EndpointDeleteRoomById = "room/delete/";
 
         public RoomsList(List<Room> list, int hotelId)
         {
@@ -47,12 +45,23 @@ namespace SoapClient.Windows
 
         private string GetHotelName()
         {
-            var client = new HotelsPortClient();
-            var request = new findHotelByIdRequest();
-            request.id = HotelId;
-            var response = client.findHotelById(request);
+            using (var client = new WebClient())
+            {
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindHotelById + HotelId.ToString());
+                    var hotel = JsonConvert.DeserializeObject<HotelResponse>(response);
 
-            return response.hotel.hotelName;
+
+                    return hotel.hotelName;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return "Hotel";
+                }
+            }
         }
 
         private void ChooseRoom(object sender, MouseButtonEventArgs e)
@@ -78,33 +87,35 @@ namespace SoapClient.Windows
 
         private RoomDetails GetRoom(int roomId)
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findRoomByIdRequest();
-                request.id = roomId;
-                var response = client.findRoomById(request);
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
-                var room = new RoomDetails(
-                    response.room.id,
-                    response.room.hotelId,
-                    response.room.roomName,
-                    response.room.roomDescription,
-                    ImageConversion(response.room.roomImagePath),
-                    response.room.roomPrice,
-                    response.room.roomQuantityOfPeople,
-                    response.room.roomBathroom,
-                    response.room.roomDesk,
-                    response.room.roomFridge,
-                    response.room.roomSafe,
-                    response.room.roomTv);
+                    var room = new RoomDetails(
+                        roomResponse.id,
+                        roomResponse.hotelId.id,
+                        roomResponse.roomName,
+                        roomResponse.roomDescription,
+                        ImageConversion(roomResponse.roomImagePath),
+                        roomResponse.roomPrice,
+                        roomResponse.roomQuantityOfPeople,
+                        roomResponse.assortmentId.roomBathroom,
+                        roomResponse.assortmentId.roomDesk,
+                        roomResponse.assortmentId.roomFridge,
+                        roomResponse.assortmentId.roomSafe,
+                        roomResponse.assortmentId.roomTv);
 
-                return room;
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
-                return null;
+                    return room;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
+                    return null;
+                }
             }
         }
 
@@ -137,33 +148,30 @@ namespace SoapClient.Windows
 
         private List<Hotel> PrepareHotelsList()
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findAllHotelsRequest();
-                var response = client.findAllHotels(request);
-
-
-                var list = new List<Hotel>();
-                foreach (var item in response)
+                try
                 {
-                    var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
-                    list.Add(hotel);
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
+                    var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
+
+                    var list = new List<Hotel>();
+                    foreach (var item in hotels)
+                    {
+                        var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
+                        list.Add(hotel);
+                    }
+
+                    return list;
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return new List<Hotel>();
+                }
+            }
 
-                return list;
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show("Błąd", e.Data.ToString(), MessageBoxButton.OK);
-                return new List<Hotel>();
-            }
         }
-
-        //private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
-        //{
-        //    Regex regex = new Regex("[^0-9]+");
-        //    e.Handled = regex.IsMatch(e.Text);
-        //}
     }
 }

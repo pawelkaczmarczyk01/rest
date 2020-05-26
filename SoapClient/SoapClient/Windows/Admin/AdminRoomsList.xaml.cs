@@ -1,21 +1,15 @@
 ﻿using Contracts.Models;
 using Contracts.ViewModels.HotelsListModels;
 using Contracts.ViewModels.RoomView;
-using SoapClient.HotelSoap;
+using Contracts.WebClientModels.Responses;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace SoapClient.Windows.Admin
 {
@@ -27,6 +21,12 @@ namespace SoapClient.Windows.Admin
         private List<Room> ListOfRooms { get; set; }
         private int HotelId { get; set; }
         private Account CurrentUser { get; set; }
+
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointFindHotelById = "hotel/findById/";
+        private readonly string EndpointFindRoomById = "room/findById/";
+        private readonly string EndpointGetAllHotels = "hotel/findAll";
+        private readonly string EndpointDeleteRoomById = "room/delete/";
 
         public AdminRoomsList(List<Room> list, int hotelId)
         {
@@ -40,12 +40,23 @@ namespace SoapClient.Windows.Admin
 
         private string GetHotelName()
         {
-            var client = new HotelsPortClient();
-            var request = new findHotelByIdRequest();
-            request.id = HotelId;
-            var response = client.findHotelById(request);
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindHotelById + HotelId.ToString());
+                    var hotel = JsonConvert.DeserializeObject<HotelResponse>(response);
 
-            return response.hotel.hotelName;
+
+                    return hotel.hotelName;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return "Hotel";
+                }
+            }
         }
 
         private void ChooseRoom(object sender, MouseButtonEventArgs e)
@@ -71,40 +82,43 @@ namespace SoapClient.Windows.Admin
 
         private RoomDetails GetRoom(int roomId)
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findRoomByIdRequest();
-                request.id = roomId;
-                var response = client.findRoomById(request);
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
-                var room = new RoomDetails(
-                    response.room.id,
-                    response.room.hotelId,
-                    response.room.roomName,
-                    response.room.roomDescription,
-                    ImageConversion(response.room.roomImagePath),
-                    response.room.roomPrice,
-                    response.room.roomQuantityOfPeople,
-                    response.room.roomBathroom,
-                    response.room.roomDesk,
-                    response.room.roomFridge,
-                    response.room.roomSafe,
-                    response.room.roomTv);
+                    var room = new RoomDetails(
+                       roomResponse.id,
+                       roomResponse.hotelId.id,
+                       roomResponse.roomName,
+                       roomResponse.roomDescription,
+                       ImageConversion(roomResponse.roomImagePath),
+                       roomResponse.roomPrice,
+                       roomResponse.roomQuantityOfPeople,
+                       roomResponse.assortmentId.roomBathroom,
+                       roomResponse.assortmentId.roomDesk,
+                       roomResponse.assortmentId.roomFridge,
+                       roomResponse.assortmentId.roomSafe,
+                       roomResponse.assortmentId.roomTv);
 
-                return room;
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
-                return null;
+                    return room;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
             }
         }
 
         private byte[] ImageConversion(string imageName)
         {
 
-            FileStream fs = new FileStream(imageName, FileMode.Open, FileAccess.Read);
+            var resourcePath = Application.Current.Resources["resources"] + "\\";
+            FileStream fs = new FileStream(resourcePath + imageName, FileMode.Open, FileAccess.Read);
             byte[] imgByteArr = new byte[fs.Length];
             fs.Read(imgByteArr, 0, Convert.ToInt32(fs.Length));
             fs.Close();
@@ -114,27 +128,30 @@ namespace SoapClient.Windows.Admin
 
         private List<Hotel> PrepareHotelsList()
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findAllHotelsRequest();
-                var response = client.findAllHotels(request);
-
-
-                var list = new List<Hotel>();
-                foreach (var item in response)
+                try
                 {
-                    var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
-                    list.Add(hotel);
-                }
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
+                    var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
-                return list;
+                    var list = new List<Hotel>();
+                    foreach (var item in hotels)
+                    {
+                        var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
+                        list.Add(hotel);
+                    }
+
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return new List<Hotel>();
+                }
             }
-            catch (Exception e)
-            {
-                MessageBox.Show("Błąd", e.Data.ToString(), MessageBoxButton.OK);
-                return new List<Hotel>();
-            }
+
         }
 
         private void DeleteRoom(object sender, RoutedEventArgs e)
@@ -154,15 +171,32 @@ namespace SoapClient.Windows.Admin
                 i++;
             }
             var room = ListOfRooms[i];
-            ListOfRooms.Remove(room);
-            var client = new HotelsPortClient();
-            var request = new deleteRoomByIdRequest();
-            request.id = room.RoomId;
-            var response = client.deleteRoomById(request);
-            listOfRooms.ItemsSource = ListOfRooms;
-            listOfRooms.Items.Refresh();
-            MessageBox.Show(response.info, "Usuwanie zakończone", MessageBoxButton.OK);
-            Close();
+
+            using (var client = new HttpClient())
+            {
+                try
+                {
+                    var task = client.DeleteAsync(BaseAddress + EndpointDeleteRoomById + room.RoomId.ToString());
+                    task.Wait();
+                    var result = task.Result;
+                    if (result.IsSuccessStatusCode)
+                    {
+                        ListOfRooms.Remove(room);
+                        listOfRooms.ItemsSource = ListOfRooms;
+                        listOfRooms.Items.Refresh();
+                        MessageBox.Show("Pomyślnie usunięto pokój!", "Usuwanie zakończone", MessageBoxButton.OK);
+                        Close();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Nieznany błąd.", "Usuwanie anulowane", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Usuwanie anulowane", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
 
         private void EditRoom(object sender, RoutedEventArgs e)
@@ -180,11 +214,5 @@ namespace SoapClient.Windows.Admin
             var window = new EditRoomView(room.RoomId);
             window.ShowDialog();
         }
-
-        //private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
-        //{
-        //    Regex regex = new Regex("[^0-9]+");
-        //    e.Handled = regex.IsMatch(e.Text);
-        //}
     }
 }

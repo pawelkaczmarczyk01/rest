@@ -2,14 +2,17 @@
 using Contracts.ViewModels.Admin;
 using Contracts.ViewModels.HotelsListModels;
 using Contracts.ViewModels.RoomView;
+using Contracts.WebClientModels.Requests;
+using Contracts.WebClientModels.Responses;
 using Microsoft.Win32;
-using SoapClient.HotelSoap;
+using Newtonsoft.Json;
 using SoapClient.Windows.Authorization;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Net;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -35,6 +38,18 @@ namespace SoapClient.Windows.Admin
         private string ImageRoomPathWithName { get; set; }
         private string ImageRoomPath { get; set; }
 
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointReservation = "reservation/findAll";
+        private readonly string EndpointFindRoomById = "room/findById/";
+        private readonly string EndpointReservationByUserId = "reservation/findByRoomId/";
+        private readonly string EndpointFindUserById = "user/findById/";
+        private readonly string EndpointDeleteUserById = "user/delete/";
+        private readonly string EndpointAllRoomFindByHotelId = "room/findByRoomId/";
+        private readonly string EndpointGetAllUsers = "user/findAll";
+        private readonly string EndpointGetAllHotels = "hotel/findAll";
+        private readonly string EndpointAddHotel = "hotel/add";
+        private readonly string EndpointAddRoom = "room/add";
+
         public AdminPanel(List<User> users, List<Hotel> hotels)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -55,27 +70,38 @@ namespace SoapClient.Windows.Admin
 
         private List<Reservation> PrepareReservationsList()
         {
-            var client = new HotelsPortClient();
-            var requestReservation = new findAllReservationsRequest();
-            var responseReservation = client.findAllReservations(requestReservation);
-
-            var list = new List<Reservation>();
-            foreach (var item in responseReservation)
+            using (WebClient client = new WebClient())
             {
-                var requestUser = new findUserByIdRequest();
-                requestUser.id = item.userId;
-                var responseUser = client.findUserById(requestUser);
-                var reservation =
-                    new Reservation(
-                    responseUser.user.userName,
-                    responseUser.user.userLastName,
-                    item.id, item.roomId,
-                    item.roomReservationFrom,
-                    item.roomReservationTo);
-                list.Add(reservation);
-            }
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointReservation);
+                    var reservations = JsonConvert.DeserializeObject<List<ReservationResponse>>(response);
 
-            return list;
+                    var list = new List<Reservation>();
+                    foreach (var item in reservations)
+                    {
+                        var response2 = client.DownloadString(BaseAddress + EndpointFindUserById + item.userId.id.ToString());
+                        var responseUser = JsonConvert.DeserializeObject<LoginResponse>(response2);
+
+                        var reservation =
+                            new Reservation(
+                            responseUser.userName,
+                            responseUser.userLastName,
+                            item.id, item.roomId.id,
+                            item.reservationFrom,
+                            item.roomReservationTo);
+                        list.Add(reservation);
+                    }
+
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Błąd", ex.Data.ToString(), MessageBoxButton.OK);
+                    return new List<Reservation>();
+                }
+            }
         }
 
         private void ChooseReservationByUser(object sender, MouseButtonEventArgs e)
@@ -94,33 +120,35 @@ namespace SoapClient.Windows.Admin
 
         private RoomDetails SetRoomByReservation(int roomId)
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findRoomByIdRequest();
-                request.id = roomId;
-                var response = client.findRoomById(request);
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
-                var room = new RoomDetails(
-                    response.room.id,
-                    response.room.hotelId,
-                    response.room.roomName,
-                    response.room.roomDescription,
-                    ImageConversion(response.room.roomImagePath),
-                    response.room.roomPrice,
-                    response.room.roomQuantityOfPeople,
-                    response.room.roomBathroom,
-                    response.room.roomDesk,
-                    response.room.roomFridge,
-                    response.room.roomSafe,
-                    response.room.roomTv);
+                    var room = new RoomDetails(
+                        roomResponse.id,
+                        roomResponse.hotelId.id,
+                        roomResponse.roomName,
+                        roomResponse.roomDescription,
+                        ImageConversion(roomResponse.roomImagePath),
+                        roomResponse.roomPrice,
+                        roomResponse.roomQuantityOfPeople,
+                        roomResponse.assortmentId.roomBathroom,
+                        roomResponse.assortmentId.roomDesk,
+                        roomResponse.assortmentId.roomFridge,
+                        roomResponse.assortmentId.roomSafe,
+                        roomResponse.assortmentId.roomTv);
 
-                return room;
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
-                return null;
+                    return room;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
             }
         }
 
@@ -139,18 +167,27 @@ namespace SoapClient.Windows.Admin
 
         private void SetReservationsByUser(int userId)
         {
-            var client = new HotelsPortClient();
-            var request = new findAllReservationsByUserIdRequest();
-            request.userId = userId;
-            var response = client.findAllReservationsByUserId(request);
-            var list = new List<ReservationByUser>();
-            foreach (var item in response)
+            using (WebClient client = new WebClient())
             {
-                var reservation = new ReservationByUser(item.id, item.roomId, item.roomReservationFrom, item.roomReservationTo);
-                list.Add(reservation);
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointReservationByUserId + userId.ToString());
+                    var reservationResponse = JsonConvert.DeserializeObject<List<ReservationResponse>>(response);
+                    var list = new List<ReservationByUser>();
+                    foreach (var item in reservationResponse)
+                    {
+                        var reservation = new ReservationByUser(item.id, item.roomId.id, item.reservationFrom, item.roomReservationTo);
+                        list.Add(reservation);
+                    }
+                    ReservationsListByUser = list;
+                    listOfReservationsByUser.ItemsSource = ReservationsListByUser;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show("Wystąpił problem z pobraniem rezerwacji wybranego użytkownika", "Problem pobrania rezerwacji", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
-            ReservationsListByUser = list;
-            listOfReservationsByUser.ItemsSource = ReservationsListByUser;
         }
 
         private byte[] ImageConversion(string imageName)
@@ -185,23 +222,31 @@ namespace SoapClient.Windows.Admin
                 return;
             }
             var user = UserList.Find(u => u.UserId == SelectedUserId);
-            var client = new HotelsPortClient();
-            var request = new deleteUserByIdRequest();
-            request.id = SelectedUserId.Value;
-            try
+            using (var client = new HttpClient())
             {
-                var response = client.deleteUserById(request);
-                UserList.Remove(user);
-                listOfUsers.ItemsSource = UserList;
-                listOfUsers.Items.Refresh();
-                SelectedUserId = null;
-                MessageBox.Show(response.info, "Usuwanie zakończone", MessageBoxButton.OK);
+                try
+                {
+                    var task = client.DeleteAsync(BaseAddress + EndpointDeleteUserById + user.UserId.ToString());
+                    task.Wait();
+                    var result = task.Result;
+                    if (result.IsSuccessStatusCode)
+                    {
+                        UserList.Remove(user);
+                        listOfUsers.ItemsSource = UserList;
+                        listOfUsers.Items.Refresh();
+                        SelectedUserId = null;
+                        MessageBox.Show("Usunięto poprawnie użytkownika", "Usuwanie zakończone", MessageBoxButton.OK);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Nieznany błąd.", "Usuwanie anulowane", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Usuwanie zakończone", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
-            catch (Exception)
-            {
-                MessageBox.Show("Nie można usunąć użytkownika, który posiada rezerwacje", "Usuwanie zakończone", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-
         }
 
         private void ChooseHotel(object sender, MouseButtonEventArgs e)
@@ -219,19 +264,28 @@ namespace SoapClient.Windows.Admin
 
         private List<Room> PrepareRoomsList(int hotelId)
         {
-            var client = new HotelsPortClient();
-            var request = new findAllRoomsByHotelIdRequest();
-            request.hotelId = hotelId;
-            var response = client.findAllRoomsByHotelId(request);
-
-            var list = new List<Room>();
-            foreach (var item in response)
+            using (WebClient client = new WebClient())
             {
-                var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
-                list.Add(room);
-            }
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + hotelId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
+                    var list = new List<Room>();
+                    foreach (var item in roomResponse)
+                    {
+                        var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
+                        list.Add(room);
+                    }
 
-            return list;
+                    return list;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Błąd pobrania pokoi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
+            }
         }
 
         private void Refresh(object sender, MouseButtonEventArgs e)
@@ -248,56 +302,59 @@ namespace SoapClient.Windows.Admin
 
         private List<Hotel> PrepareHotelsList()
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findAllHotelsRequest();
-                var response = client.findAllHotels(request);
-
-
-                var list = new List<Hotel>();
-                foreach (var item in response)
+                try
                 {
-                    var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
-                    list.Add(hotel);
-                }
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
+                    var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
-                return list;
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show("Błąd", e.Data.ToString(), MessageBoxButton.OK);
-                return new List<Hotel>();
+                    var list = new List<Hotel>();
+                    foreach (var item in hotels)
+                    {
+                        var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
+                        list.Add(hotel);
+                    }
+
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return new List<Hotel>();
+                }
             }
         }
 
         private List<User> PrepareUsers()
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findAllUsersRequest();
-                var response = client.findAllUsers(request);
-                var list = new List<User>();
-                foreach (var item in response)
+                try
                 {
-                    var user = new User(item.id, item.userName, item.userLastName);
-                    if (user.UserId == 1 && user.Name.Equals("admin"))
+                    var response = client.DownloadString(BaseAddress + EndpointGetAllUsers);
+                    var user = JsonConvert.DeserializeObject<List<LoginResponse>>(response);
+
+                    var list = new List<User>();
+                    foreach (var item in user)
                     {
-                        user.IsAdmin = true;
+                        var newUser = new User(item.id, item.userName, item.userLastName);
+                        if (newUser.UserId == 1 && newUser.Name.Equals("admin"))
+                        {
+                            newUser.IsAdmin = true;
+                        }
+                        list.Add(newUser);
                     }
-                    list.Add(user);
+
+                    return list;
                 }
-
-                return list;
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Błąd pobrania użytkowników", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
             }
-
-            catch (Exception e)
-            {
-                MessageBox.Show("Błąd", e.Data.ToString(), MessageBoxButton.OK);
-                return new List<User>();
-            }
-
         }
 
         private void ChooseReservation(object sender, MouseButtonEventArgs e)
@@ -431,13 +488,21 @@ namespace SoapClient.Windows.Admin
 
             SaveImage(ImageHotelPath, HotelImageName.Text);
 
-            var client = new HotelsPortClient();
-            var request = new addHotelRequest();
-            var reqHotel = new hotelRequest();
-            reqHotel.hotelName = HotelName.Text;
-            reqHotel.hotelImagePath = HotelImageName.Text;
-            request.hotel = reqHotel;
-            var response = client.addHotel(request);
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var hotelToAddRequest = new HotelToAddRequest(HotelName.Text, HotelImageName.Text);
+                    var request = JsonConvert.SerializeObject(hotelToAddRequest);
+                    client.UploadString(BaseAddress + EndpointAddHotel, request);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd dodawania hotelu", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
 
             HotelName.Text = "Podaj nazwę hotelu";
             HotelName.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("Silver"));
@@ -445,6 +510,7 @@ namespace SoapClient.Windows.Admin
             AddHotelButton.IsEnabled = false;
             HotelImageName.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("IndianRed"));
             HotelsSelector.Items.Refresh();
+            MessageBox.Show("Dodano hotel prawidłowo.", "Dodawanie hotelu", MessageBoxButton.OK);
         }
 
         private void SaveImage(string imagePath, string imageName)
@@ -491,60 +557,71 @@ namespace SoapClient.Windows.Admin
                 return;
             }
 
-            var client = new HotelsPortClient();
-            var request = new addRoomRequest();
-            var reqRoom = new roomRequest();
-
-            reqRoom.roomName = RoomName.Text;
-            reqRoom.roomDescription = RoomDescription.Text;
-            reqRoom.roomImagePath = RoomImageName.Text;
-
-            double price = 0;
-            if(double.TryParse(RoomPrice.Text, out price))
+            using (WebClient client = new WebClient())
             {
-                reqRoom.roomPrice = price;
-            }
-            else
-            {
-                MessageBox.Show("Podany niepoprawny format ceny", "Nie prawidłowy format ceny", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-          
-            int quantityOfPeople = 0;
-            if (int.TryParse(RoomQuantityOfPeople.Text, out quantityOfPeople))
-            {
-                reqRoom.roomQuantityOfPeople = quantityOfPeople;
-            }
-            else
-            {
-                MessageBox.Show("Podany niedopuszczalne znaki przy liczbie osób", "Nie prawidłowy format liczby osób", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            var index = HotelsSelector.SelectedIndex;
-            reqRoom.hotelId = HotelsList.Find(h => h.Name == HotelsList.ElementAt(index).Name).Id;
-            reqRoom.roomBathroom = Bathroom.IsChecked;
-            reqRoom.roomDesk = Desk.IsChecked;
-            reqRoom.roomFridge = Fridge.IsChecked;
-            reqRoom.roomSafe = Safe.IsChecked;
-            reqRoom.roomTv = Tv.IsChecked;
-            request.room = reqRoom;
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var roomToAddRequest = new RoomToAddRequest();
+                    roomToAddRequest.roomName = RoomName.Text;
+                    roomToAddRequest.roomDescription = RoomDescription.Text;
+                    roomToAddRequest.roomImagePath = RoomImageName.Text;
 
-            SaveImage(ImageRoomPath, RoomImageName.Text);
+                    double price = 0;
+                    if (double.TryParse(RoomPrice.Text, out price))
+                    {
+                        roomToAddRequest.roomPrice = price;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Podany niepoprawny format ceny", "Nie prawidłowy format ceny", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
 
-            var response = client.addRoom(request);
+                    int quantityOfPeople = 0;
+                    if (int.TryParse(RoomQuantityOfPeople.Text, out quantityOfPeople))
+                    {
+                        roomToAddRequest.roomQuantityOfPeople = quantityOfPeople;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Podany niedopuszczalne znaki przy liczbie osób", "Nie prawidłowy format liczby osób", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    var index = HotelsSelector.SelectedIndex;
+                    roomToAddRequest.hotelId = HotelsList.Find(h => h.Name == HotelsList.ElementAt(index).Name).Id;
+                    roomToAddRequest.roomBathroom = Bathroom.IsChecked;
+                    roomToAddRequest.roomDesk = Desk.IsChecked;
+                    roomToAddRequest.roomFridge = Fridge.IsChecked;
+                    roomToAddRequest.roomSafe = Safe.IsChecked;
+                    roomToAddRequest.roomTv = Tv.IsChecked;
 
-            MessageBox.Show("Dodano nowy pokój", "Dodawanie pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
-            RoomName.Text = "";
-            RoomDescription.Text = "";
-            RoomImageName.Text = "";
-            RoomPrice.Text = "";
-            RoomQuantityOfPeople.Text = "";
-            Bathroom.IsChecked = false;
-            Desk.IsChecked = false;
-            Fridge.IsChecked = false;
-            Safe.IsChecked = false;
-            Tv.IsChecked = false;
-            AddRoomButton.IsEnabled = false;
+                    SaveImage(ImageRoomPath, RoomImageName.Text);
+
+
+                    var request = JsonConvert.SerializeObject(roomToAddRequest);
+                    client.UploadString(BaseAddress + EndpointAddRoom, request);
+
+                    MessageBox.Show("Dodano nowy pokój", "Dodawanie pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
+                    RoomName.Text = "";
+                    RoomDescription.Text = "";
+                    RoomImageName.Text = "";
+                    RoomPrice.Text = "";
+                    RoomQuantityOfPeople.Text = "";
+                    Bathroom.IsChecked = false;
+                    Desk.IsChecked = false;
+                    Fridge.IsChecked = false;
+                    Safe.IsChecked = false;
+                    Tv.IsChecked = false;
+                    AddRoomButton.IsEnabled = false;
+
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd dodawania pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }          
         }
 
         //private void DeleteReservation(object sender, MouseButtonEventArgs e)

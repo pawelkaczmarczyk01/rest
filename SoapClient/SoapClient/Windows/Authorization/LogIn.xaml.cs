@@ -4,7 +4,6 @@ using Contracts.ViewModels.HotelsListModels;
 using Contracts.WebClientModels.Requests;
 using Contracts.WebClientModels.Responses;
 using Newtonsoft.Json;
-using SoapClient.HotelSoap;
 using SoapClient.Windows.Admin;
 using System;
 using System.Collections.Generic;
@@ -113,7 +112,7 @@ namespace SoapClient.Windows.Authorization
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Błąd", ex.Data.ToString(), MessageBoxButton.OK);
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
                     return new List<Hotel>();
                 }
             }
@@ -132,7 +131,6 @@ namespace SoapClient.Windows.Authorization
 
         private List<User> PrepareUsers()
         {
-
             using (WebClient client = new WebClient())
             {
                 try
@@ -155,7 +153,7 @@ namespace SoapClient.Windows.Authorization
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.Message, "Błąd logowania", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(e.Message, "Błąd pobrania użytkowników", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }

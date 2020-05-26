@@ -1,27 +1,20 @@
 ﻿using Contracts.ViewModels.HotelsListModels;
 using Contracts.ViewModels.RoomView;
+using Contracts.WebClientModels.Requests;
+using Contracts.WebClientModels.Responses;
 using Microsoft.Win32;
-using SoapClient.HotelSoap;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace SoapClient.Windows.Admin
 {
-    /// <summary>
-    /// Interaction logic for EditRoomView.xaml
-    /// </summary>
+
     public partial class EditRoomView : Window
     {
         private RoomDetails Room { get; set; }
@@ -29,67 +22,83 @@ namespace SoapClient.Windows.Admin
         private string ImageRoomPath { get; set; }
         private List<Hotel> HotelsList { get; set; }
 
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointFindRoomById = "room/findById/";
+        private readonly string EndpointUpdateRoom = "room/update/";
+        private readonly string EndpointGetAllHotels = "hotel/findAll";
+
         public EditRoomView(int roomId)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             InitializeComponent();
-            var client = new HotelsPortClient();
-            var request = new findRoomByIdRequest();
-            request.id = roomId;
-            var response = client.findRoomById(request);
-            var room = response.room;
-            Room = new RoomDetails(room.id, 
-                room.hotelId, 
-                room.roomName, 
-                room.roomDescription, 
-                ImageConversion(room.roomImagePath), 
-                room.roomPrice, 
-                room.roomQuantityOfPeople, 
-                room.roomBathroom, 
-                room.roomDesk, 
-                room.roomFridge, 
-                room.roomSafe, 
-                room.roomTv);
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
-            HotelsList = PrepareHotelsList();
-            HotelsSelector.ItemsSource = HotelsList;
-            ImageRoomPath = room.roomImagePath;
+                    Room = new RoomDetails(roomResponse.id,
+                        roomResponse.hotelId.id,
+                        roomResponse.roomName,
+                        roomResponse.roomDescription,
+                        ImageConversion(roomResponse.roomImagePath),
+                        roomResponse.roomPrice,
+                        roomResponse.roomQuantityOfPeople,
+                        roomResponse.assortmentId.roomBathroom,
+                        roomResponse.assortmentId.roomDesk,
+                        roomResponse.assortmentId.roomFridge,
+                        roomResponse.assortmentId.roomSafe,
+                        roomResponse.assortmentId.roomTv);
 
-            RoomName.Text = Room.Name;
-            RoomDescription.Text = Room.Description;
-            RoomImageName.Text = ImageRoomPath;
-            RoomPrice.Text = Room.Price.ToString();
-            RoomQuantityOfPeople.Text = Room.RoomQuantityOfPeople.ToString();
-            Bathroom.IsChecked = Room.IsBathroom;
-            Desk.IsChecked = Room.IsDesk;
-            Fridge.IsChecked = Room.IsFridge;
-            Safe.IsChecked = Room.IsSafe;
-            Tv.IsChecked = Room.IsTv;
+                    ImageRoomPath = roomResponse.roomImagePath;
+                    HotelsList = PrepareHotelsList();
+                    HotelsSelector.ItemsSource = HotelsList;
+                    RoomName.Text = Room.Name;
+                    RoomDescription.Text = Room.Description;
+                    RoomImageName.Text = ImageRoomPath;
+                    RoomPrice.Text = Room.Price.ToString();
+                    RoomQuantityOfPeople.Text = Room.RoomQuantityOfPeople.ToString();
+                    Bathroom.IsChecked = Room.IsBathroom;
+                    Desk.IsChecked = Room.IsDesk;
+                    Fridge.IsChecked = Room.IsFridge;
+                    Safe.IsChecked = Room.IsSafe;
+                    Tv.IsChecked = Room.IsTv;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
+                }
+            }
         }
 
         private List<Hotel> PrepareHotelsList()
         {
-            try
+            using (WebClient client = new WebClient())
             {
-                var client = new HotelsPortClient();
-                var request = new findAllHotelsRequest();
-                var response = client.findAllHotels(request);
-
-
-                var list = new List<Hotel>();
-                foreach (var item in response)
+                try
                 {
-                    var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
-                    list.Add(hotel);
-                }
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
+                    var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
-                return list;
+                    var list = new List<Hotel>();
+                    foreach (var item in hotels)
+                    {
+                        var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
+                        list.Add(hotel);
+                    }
+
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    return new List<Hotel>();
+                }
             }
-            catch (Exception e)
-            {
-                MessageBox.Show("Błąd", e.Data.ToString(), MessageBoxButton.OK);
-                return new List<Hotel>();
-            }
+
         }
 
         private byte[] ImageConversion(string imageName)
@@ -218,55 +227,66 @@ namespace SoapClient.Windows.Admin
                 return;
             }
 
-            var client = new HotelsPortClient();
-            var request = new updateRoomRequest();
-            var reqRoom = new roomRequest();
-
-            reqRoom.roomName = RoomName.Text;
-            reqRoom.roomDescription = RoomDescription.Text;
-            reqRoom.roomImagePath = RoomImageName.Text;
-
-            double price = 0;
-            if (double.TryParse(RoomPrice.Text, out price))
+            using (WebClient client = new WebClient())
             {
-                reqRoom.roomPrice = price;
-            }
-            else
-            {
-                MessageBox.Show("Podany niepoprawny format ceny", "Nie prawidłowy format ceny", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var roomToUpdateRequest = new RoomToUpdateRequest();
+                    roomToUpdateRequest.roomName = RoomName.Text;
+                    roomToUpdateRequest.roomDescription = RoomDescription.Text;
+                    roomToUpdateRequest.roomImagePath = RoomImageName.Text;
+
+
+                    double price = 0;
+                    if (double.TryParse(RoomPrice.Text, out price))
+                    {
+                        roomToUpdateRequest.roomPrice = price;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Podany niepoprawny format ceny", "Nie prawidłowy format ceny", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    int quantityOfPeople = 0;
+                    if (int.TryParse(RoomQuantityOfPeople.Text, out quantityOfPeople))
+                    {
+                        roomToUpdateRequest.roomQuantityOfPeople = quantityOfPeople;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Podany niedopuszczalne znaki przy liczbie osób", "Nie prawidłowy format liczby osób", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var index = HotelsSelector.SelectedIndex;
+                    roomToUpdateRequest.hotelId = HotelsList.Find(h => h.Name == HotelsList.ElementAt(index).Name).Id;
+                    roomToUpdateRequest.roomBathroom = Bathroom.IsChecked;
+                    roomToUpdateRequest.roomDesk = Desk.IsChecked;
+                    roomToUpdateRequest.roomFridge = Fridge.IsChecked;
+                    roomToUpdateRequest.roomSafe = Safe.IsChecked;
+                    roomToUpdateRequest.roomTv = Tv.IsChecked;
+
+                    if (ImageRoomPath.Contains("\\"))
+                    {
+                        SaveImage(ImageRoomPath, RoomImageName.Text);
+                    }
+
+                    var request = JsonConvert.SerializeObject(roomToUpdateRequest);
+                    client.UploadString(BaseAddress + EndpointUpdateRoom + Room.RoomId.ToString(), WebRequestMethods.Http.Put, request);
+
+                    MessageBox.Show("Zaaktulizowano pokój", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd edycji pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
             }
 
-            int quantityOfPeople = 0;
-            if (int.TryParse(RoomQuantityOfPeople.Text, out quantityOfPeople))
-            {
-                reqRoom.roomQuantityOfPeople = quantityOfPeople;
-            }
-            else
-            {
-                MessageBox.Show("Podany niedopuszczalne znaki przy liczbie osób", "Nie prawidłowy format liczby osób", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            var index = HotelsSelector.SelectedIndex;
-            reqRoom.hotelId = HotelsList.Find(h => h.Name == HotelsList.ElementAt(index).Name).Id;
-            reqRoom.roomBathroom = Bathroom.IsChecked;
-            reqRoom.roomDesk = Desk.IsChecked;
-            reqRoom.roomFridge = Fridge.IsChecked;
-            reqRoom.roomSafe = Safe.IsChecked;
-            reqRoom.roomTv = Tv.IsChecked;
-            request.room = reqRoom;
-            request.id = Room.RoomId;
-
-            if (ImageRoomPath.Contains("\\"))
-            {
-                SaveImage(ImageRoomPath, RoomImageName.Text);
-            }
-
-            var response = client.updateRoom(request);
-
-            MessageBox.Show("Zaaktulizowano pokój", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            Close();
         }
     }
 }

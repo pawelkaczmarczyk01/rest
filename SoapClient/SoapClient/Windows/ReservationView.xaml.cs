@@ -1,19 +1,11 @@
 ﻿using Contracts.Models;
 using Contracts.ViewModels.ReservationView;
-using SoapClient.HotelSoap;
+using Contracts.WebClientModels.Requests;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace SoapClient.Windows
 {
@@ -25,6 +17,9 @@ namespace SoapClient.Windows
         private List<ReservationVM> ReservationsList { get; set; }
         private int RoomId { get; set; }
         public Account CurrentUser { get; set; }
+
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointAddReservation = "reservation/add";
 
         public ReservationView(List<ReservationVM> reservations, int roomId)
         {
@@ -51,21 +46,31 @@ namespace SoapClient.Windows
                 return;
             }
 
-            var client = new HotelsPortClient();
-            var request = new addReservationRequest();
-            var reservation = new reservationRequest();
-            reservation.roomId = RoomId;
-            reservation.roomReservationFrom = from.Value;
-            reservation.roomReservationTo = to.Value;
-            reservation.userId = CurrentUser.AccountId;
-            request.reservation = reservation;
-            var response = client.addReservation(request);
-
-            if (response.info != null && !response.info.Equals("") && !response.info.Contains("Successfully"))
+            using (var client = new WebClient())
             {
-                MessageBox.Show(response.info, "Błąd rezerwacji pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var reservationToAddRequest = new ReservationToAddRequest();
+                    reservationToAddRequest.roomId = RoomId;
+                    reservationToAddRequest.reservationFrom = from.Value;
+                    reservationToAddRequest.reservationTo = to.Value;
+                    reservationToAddRequest.userId = CurrentUser.AccountId;
+                    var request = JsonConvert.SerializeObject(reservationToAddRequest);
+                    var response = client.UploadString(BaseAddress + EndpointAddReservation, request);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Błąd rezerwacji pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
             }
+
+            //if (response.info != null && !response.info.Equals("") && !response.info.Contains("Successfully"))
+            //{
+            //    MessageBox.Show(response.info, "Błąd rezerwacji pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
+            //    return;
+            //}
 
             MessageBox.Show("Zarezerowwano pokój od " + from.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + " do " + to.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), "Rezerwacja pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
 

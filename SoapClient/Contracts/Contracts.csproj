@@ -54,10 +54,18 @@
     <Compile Include="ViewModels\HotelsListModels\Room.cs" />
     <Compile Include="ViewModels\ReservationView\ReservationVM.cs" />
     <Compile Include="ViewModels\RoomView\RoomDetails.cs" />
+    <Compile Include="WebClientModels\Requests\HotelToAddRequest.cs" />
     <Compile Include="WebClientModels\Requests\LoginRequest.cs" />
     <Compile Include="WebClientModels\Requests\RegistrationUser.cs" />
+    <Compile Include="WebClientModels\Requests\ReservationToAddRequest.cs" />
+    <Compile Include="WebClientModels\Requests\RoomToAddRequest.cs" />
+    <Compile Include="WebClientModels\Requests\RoomToUpdateRequest.cs" />
+    <Compile Include="WebClientModels\Responses\AssortmentResponse.cs" />
     <Compile Include="WebClientModels\Responses\HotelResponse.cs" />
     <Compile Include="WebClientModels\Responses\LoginResponse.cs" />
+    <Compile Include="WebClientModels\Responses\ReservationResponse.cs" />
+    <Compile Include="WebClientModels\Responses\RoomByHotelIdResponse.cs" />
+    <Compile Include="WebClientModels\Responses\RoomResponse.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

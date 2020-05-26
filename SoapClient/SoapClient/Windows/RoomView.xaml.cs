@@ -1,23 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using Contracts.Models;
+﻿using Contracts.Models;
 using Contracts.ViewModels.HotelsListModels;
 using Contracts.ViewModels.ReservationView;
 using Contracts.ViewModels.RoomView;
-using SoapClient.HotelSoap;
+using Contracts.WebClientModels.Responses;
+using Newtonsoft.Json;
+using SoapClient.Windows.Admin;
 using SoapClient.Windows.Authorization;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Windows;
+using System.Windows.Input;
 
 namespace SoapClient.Windows
 {
@@ -29,6 +23,10 @@ namespace SoapClient.Windows
         private RoomDetails Room { get; set; }
         private Account CurrentUser { get; set; }
         private int HotelId { get; set; }
+
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointAllRoomFindByHotelId = "room/findByRoomId/";
+        private readonly string EndpointReservation = "reservation/findAll";
 
         public RoomView(RoomDetails room, int hotelId)
         {
@@ -56,25 +54,44 @@ namespace SoapClient.Windows
         private void GoBack(object sender, MouseButtonEventArgs e)
         {
             var list = PrepareRoomsList();
-            var window = new RoomsList(list, HotelId);
-            Close();
-            window.Show();
+            if (CurrentUser.IsAdmin)
+            {
+                var window = new AdminRoomsList(list, HotelId);
+                Close();
+                window.Show();
+            }
+            else
+            {
+                var window = new RoomsList(list, HotelId);
+                Close();
+                window.Show();
+            }
         }
 
         private List<Room> PrepareRoomsList()
         {
-            var client = new HotelsPortClient();
-            var request = new findAllRoomsByHotelIdRequest();
-            request.hotelId = Room.HotelId;
-            var response = client.findAllRoomsByHotelId(request);
-
-            var list = new List<Room>();
-            foreach (var item in response)
+            using (var client = new WebClient())
             {
-                var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
-                list.Add(room);
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + Room.HotelId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
+                    var list = new List<Room>();
+                    foreach (var item in roomResponse)
+                    {
+                        var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
+                        list.Add(room);
+                    }
+
+                    return list;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Błąd pobrania pokoi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
             }
-            return list;
         }
 
         private byte[] ImageConversion(string imageName)
@@ -98,26 +115,37 @@ namespace SoapClient.Windows
 
         private List<ReservationVM> PrepareReservations()
         {
-            var client = new HotelsPortClient();
-            var request = new findAllReservationsRequest();
-            var response = client.findAllReservations(request);
-
-            var list = new List<ReservationVM>();
-            foreach (var item in response)
+            using (WebClient client = new WebClient())
             {
-                if (item.roomId == Room.RoomId)
+                try
                 {
-                    if (item.roomReservationFrom.Year >= DateTime.Now.Year)
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointReservation);
+                    var reservations = JsonConvert.DeserializeObject<List<ReservationResponse>>(response);
+
+                    var list = new List<ReservationVM>();
+                    foreach (var item in reservations)
                     {
-                        if (item.roomReservationFrom.Day >= DateTime.Now.Day)
+                        if (item.roomId.id == Room.RoomId)
                         {
-                            var reservation = new ReservationVM(item.id, item.roomId, item.roomReservationFrom, item.roomReservationTo);
-                            list.Add(reservation);
+                            if (item.reservationFrom.Year >= DateTime.Now.Year)
+                            {
+                                if (item.reservationFrom.Day >= DateTime.Now.Day)
+                                {
+                                    var reservation = new ReservationVM(item.id, item.roomId.id, item.reservationFrom, item.roomReservationTo);
+                                    list.Add(reservation);
+                                }
+                            }
                         }
-                    }                 
-                }        
+                    }
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Błąd", ex.Data.ToString(), MessageBoxButton.OK);
+                    return new List<ReservationVM>();
+                }
             }
-            return list;
         }
     }
 }

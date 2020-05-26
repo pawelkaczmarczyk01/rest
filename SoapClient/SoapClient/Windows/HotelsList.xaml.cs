@@ -1,22 +1,14 @@
 ﻿using Contracts.Models;
 using Contracts.ViewModels.HotelsListModels;
-using SoapClient.HotelSoap;
+using Contracts.WebClientModels.Responses;
+using Newtonsoft.Json;
 using SoapClient.Windows.Authorization;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.ServiceModel;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace SoapClient.Windows
 {
@@ -27,6 +19,9 @@ namespace SoapClient.Windows
     {
         private List<Hotel> ListOfHotels { get; set; }
         private Account CurrentUser { get; set; }
+
+        private readonly string BaseAddress = "http://localhost:8080/";
+        private readonly string EndpointAllRoomFindByHotelId = "room/findByRoomId/";
 
         public HotelsList(List<Hotel> list)
         {
@@ -55,19 +50,28 @@ namespace SoapClient.Windows
 
         private List<Room> PrepareRoomsList(int hotelId)
         {
-            var client = new HotelsPortClient();
-            var request = new findAllRoomsByHotelIdRequest();
-            request.hotelId = hotelId;
-            var response = client.findAllRoomsByHotelId(request);
-
-            var list = new List<Room>();
-            foreach (var item in response)
+            using (WebClient client = new WebClient())
             {
-                var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
-                list.Add(room);
-            }
+                try
+                {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + hotelId.ToString());
+                    var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
+                    var list = new List<Room>();
+                    foreach (var item in roomResponse)
+                    {
+                        var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
+                        list.Add(room);
+                    }
 
-            return list;
+                    return list;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Błąd pobrania pokoi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return null;
+                }
+            }
         }
 
         private byte[] ImageConversion(string imageName)
