@@ -3,6 +3,7 @@ package com.example.rest.web.endpoints;
 import com.example.rest.db.daoModel.Hotel;
 import com.example.rest.web.service.HotelService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +39,10 @@ public class HotelEndpoint {
     @RequestMapping(value = "/findAll", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
     public List<Hotel> findHotelById() {
         return hotelService.findAll();
+    }
+
+    @RequestMapping(value = "/findAllHATEOAS", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
+    public CollectionModel<Hotel> findHotelHATEOAS() {
+        return hotelService.findAllHATEOAS();
     }
 }

@@ -1,10 +1,12 @@
 package com.example.rest.db.daoModel;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import javax.persistence.*;
 
 @Entity
 @Table(name = "hotels", uniqueConstraints = @UniqueConstraint(columnNames = "hotelName"))
-public class Hotel {
+public class Hotel extends RepresentationModel<Hotel> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

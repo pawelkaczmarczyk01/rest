@@ -8,12 +8,16 @@ import com.example.rest.db.daoModel.Room;
 import com.example.rest.web.service.HotelService;
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.Link;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @Service
 @Transactional
@@ -83,5 +87,22 @@ public class HotelServiceImpl implements HotelService {
     @Override
     public List<Hotel> findAll() {
         return hotelDAO.findAll();
+    }
+
+    @Override
+    public CollectionModel<Hotel> findAllHATEOAS() {
+
+        List<Hotel> allHotels = hotelDAO.findAll();
+
+        for (Hotel hotel : allHotels) {
+            String hotelId = hotel.getId().toString();
+            Link selfLink = linkTo(HotelServiceImpl.class).slash(hotelId).withSelfRel();
+            hotel.add(selfLink);
+        }
+
+        Link link = linkTo(HotelServiceImpl.class).withSelfRel();
+        CollectionModel<Hotel> result = new CollectionModel<>(allHotels, link);
+
+        return result;
     }
 }

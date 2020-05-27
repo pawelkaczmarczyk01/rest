@@ -1,6 +1,7 @@
 package com.example.rest.web.service;
 
 import com.example.rest.db.daoModel.Hotel;
+import org.springframework.hateoas.CollectionModel;
 
 import java.util.List;
 
@@ -15,4 +16,6 @@ public interface HotelService {
     Hotel findHotelById(int id);
 
     List<Hotel> findAll();
+
+    CollectionModel<Hotel> findAllHATEOAS();
 }
