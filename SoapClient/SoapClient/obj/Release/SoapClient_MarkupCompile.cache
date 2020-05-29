@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-F:\git\rest\SoapClient\SoapClient\obj\Debug\
+F:\git\rest\SoapClient\SoapClient\obj\Release\
 SoapClient
 none
 false
-DEBUG;TRACE
+TRACE
 F:\git\rest\SoapClient\SoapClient\App.xaml
 10-679648119
 
 14-822344233
-21-369601042
+21-1572361549
 MainWindow.xaml;Windows\Admin\AdminPanel.xaml;Windows\Admin\AdminRoomsList.xaml;Windows\Admin\EditRoomView.xaml;Windows\Authorization\LogIn.xaml;Windows\Authorization\Registration.xaml;Windows\HotelsList.xaml;Windows\ReservationView.xaml;Windows\RoomsList.xaml;Windows\RoomView.xaml;
 
-False
+True
 

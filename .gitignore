@@ -30,3 +30,8 @@ build/
 ### VS Code ###
 .vscode/
 /SoapClient/.vs/SoapClient/v15/Server/sqlite3
+
+### WPF CLIENT ###
+SoapClient/.vs
+bin/
+obj/
