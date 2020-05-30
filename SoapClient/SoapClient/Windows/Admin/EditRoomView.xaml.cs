@@ -11,6 +11,8 @@ using System.Linq;
 using System.Net;
 using System.Windows;
 using System.Windows.Media;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows.Admin
 {
@@ -53,6 +55,26 @@ namespace SoapClient.Windows.Admin
                         roomResponse.assortmentId.roomSafe,
                         roomResponse.assortmentId.roomTv);
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", "Pobieranie szczegółów pokoju zakończono pomyślnie" },
+                        { "Context", "EditRoomView" },
+                        { "Data",  new BsonDocument
+                            {
+                                { "RoomId", roomId },
+                                { "HotelId", Room.HotelId },
+                                { "RoomName", Room.Name }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+
                     ImageRoomPath = roomResponse.roomImagePath;
                     HotelsList = PrepareHotelsList();
                     HotelsSelector.ItemsSource = HotelsList;
@@ -69,7 +91,24 @@ namespace SoapClient.Windows.Admin
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "EditRoomView" },
+                        { "Data",  new BsonDocument
+                            {
+                                { "RoomId", roomId }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Pobranie szczegółów pokoju", MessageBoxButton.OK);
                 }
             }
         }
@@ -84,19 +123,49 @@ namespace SoapClient.Windows.Admin
                     client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
-
+                    var hotelsId = new BsonArray();
                     var list = new List<Hotel>();
                     foreach (var item in hotels)
                     {
                         var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
                         list.Add(hotel);
+                        hotelsId.Add(item.id);
                     }
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", "Pobieranie hoteli zakończono pomyślnie" },
+                        { "Context", "EditRoomView" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelIds", hotelsId }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return list;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", ex.Message },
+                        { "Context", "EditRoomView" }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Data.ToString(), "Pobranie hoteli", MessageBoxButton.OK);
                     return new List<Hotel>();
                 }
             }
@@ -223,9 +292,22 @@ namespace SoapClient.Windows.Admin
 
         private void AddRoom(object sender, RoutedEventArgs e)
         {
+            const string connectionString = "mongodb://localhost:27017";
+            var clientDB = new MongoClient(connectionString);
+            var database = clientDB.GetDatabase("project");
+
             if (RoomName.Text == "" || RoomName.Text == null || RoomName.Text.Equals("Podaj nazwę pokoju"))
             {
-                MessageBox.Show("Podaj nazwę pokoju", "Nie podano nazwy pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                var collection1 = database.GetCollection<BsonDocument>("errors");
+                var document1 = new BsonDocument
+                {
+                    { "Title", "Edycja pokoju" },
+                    { "Content", "Podaj nazwę pokoju" },
+                    { "Context", "EditRoomView" },
+                    { "Date", DateTime.Now }
+                };
+                collection1.InsertOne(document1);
+                MessageBox.Show("Podaj nazwę pokoju", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -240,7 +322,6 @@ namespace SoapClient.Windows.Admin
                     roomToUpdateRequest.roomDescription = RoomDescription.Text;
                     roomToUpdateRequest.roomImagePath = RoomImageName.Text;
 
-
                     double price = 0;
                     if (double.TryParse(RoomPrice.Text, out price))
                     {
@@ -248,7 +329,16 @@ namespace SoapClient.Windows.Admin
                     }
                     else
                     {
-                        MessageBox.Show("Podany niepoprawny format ceny", "Nie prawidłowy format ceny", MessageBoxButton.OK, MessageBoxImage.Error);
+                        var collection1 = database.GetCollection<BsonDocument>("errors");
+                        var document1 = new BsonDocument
+                        {
+                            { "Title", "Edycja pokoju" },
+                            { "Content", "Podany niepoprawny format ceny" },
+                            { "Context", "EditRoomView" },
+                            { "Date", DateTime.Now }
+                        };
+                        collection1.InsertOne(document1);
+                        MessageBox.Show("Podany niepoprawny format ceny", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -259,7 +349,16 @@ namespace SoapClient.Windows.Admin
                     }
                     else
                     {
-                        MessageBox.Show("Podany niedopuszczalne znaki przy liczbie osób", "Nie prawidłowy format liczby osób", MessageBoxButton.OK, MessageBoxImage.Error);
+                        var collection1 = database.GetCollection<BsonDocument>("errors");
+                        var document1 = new BsonDocument
+                        {
+                            { "Title", "Edycja pokoju" },
+                            { "Content", "Podano niedopuszczalne znaki przy liczbie osób" },
+                            { "Context", "EditRoomView" },
+                            { "Date", DateTime.Now }
+                        };
+                        collection1.InsertOne(document1);
+                        MessageBox.Show("Podano niedopuszczalne znaki przy liczbie osób", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -279,13 +378,33 @@ namespace SoapClient.Windows.Admin
                     var request = JsonConvert.SerializeObject(roomToUpdateRequest);
                     client.UploadString(BaseAddress + EndpointUpdateRoom + Room.RoomId.ToString(), WebRequestMethods.Http.Put, request);
 
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Edycja pokoju" },
+                        { "Content", "Edycję pokoju zakończono pomyślnie" },
+                        { "Context", "EditRoomView" },
+                        { "Data", new BsonDocument("Room", roomToUpdateRequest.ToBsonDocument()) },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+
                     MessageBox.Show("Zaaktulizowano pokój", "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Information);
 
                     Close();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Błąd edycji pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Edycja pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "EditRoomView" },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Edycja pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }

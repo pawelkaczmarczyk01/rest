@@ -4,6 +4,8 @@ using System;
 using System.Net;
 using System.Windows;
 using System.Windows.Media;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows.Authorization
 {
@@ -28,24 +30,73 @@ namespace SoapClient.Windows.Authorization
 
         private void FinishRegistration(object sender, RoutedEventArgs e)
         {
+
+            const string connectionString = "mongodb://localhost:27017";
+            var clientDB = new MongoClient(connectionString);
+            var database = clientDB.GetDatabase("project");
             if (LoginTextBox.Text.Length < 3 || LoginTextBox.Text == null || LoginTextBox.Text.Equals("Login"))
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Login" },
+                    { "Content", "Login musi mieć przynajmniej 3 znaki." },
+                    { "Context", "Registration" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Login musi mieć przynajmniej 3 znaki.", "Błędny login", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else if (PasswordTextBoxP.Password.Length < 3 || PasswordTextBoxP.Password == null)
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Hasło" },
+                    { "Content", "Hasło musi mieć przynajmniej 3 znaki." },
+                    { "Context", "Registration" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Hasło musi mieć przynajmniej 3 znaki.", "Błędne hasło", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else if (!RepeatPasswordTextBoxP.Password.Equals(PasswordTextBoxP.Password))
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Hasło" },
+                    { "Content", "Hasła są różne." },
+                    { "Context", "Registration" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Hasła są różne.", "Błędne hasło", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else if (NameTextBox.Text.Length < 3 || NameTextBox.Text == null || NameTextBox.Text.Equals("Imię"))
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Imię" },
+                    { "Content", "Imię musi mieć przynajmniej 3 znaki." },
+                    { "Context", "Registration" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Imię musi mieć przynajmniej 3 znaki.", "Błędne imię", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else if (SurnameTextBox.Text.Length < 3 || SurnameTextBox.Text == null || SurnameTextBox.Text.Equals("Nazwisko"))
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Nazwisko" },
+                    { "Content", "Nazwisko musi mieć przynajmniej 3 znaki." },
+                    { "Context", "Registration" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Nazwisko musi mieć przynajmniej 3 znaki.", "Błędne nazwisko", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else
@@ -58,6 +109,17 @@ namespace SoapClient.Windows.Authorization
                         client.Encoding = System.Text.Encoding.UTF8;
                         var request = JsonConvert.SerializeObject(new RegistrationUser(NameTextBox.Text, SurnameTextBox.Text, LoginTextBox.Text, PasswordTextBoxP.Password, RepeatPasswordTextBoxP.Password));
                         client.UploadString(Endpoint + EndpointAdd, request);
+
+                        var collection = database.GetCollection<BsonDocument>("user");
+                        var document = new BsonDocument
+                        {
+                            { "Title", "Rejestracja" },
+                            { "Content", "Rejestracja zakończona poprawnie" },
+                            { "Context", "Registration" },
+                            { "Date", DateTime.Now }
+                        };
+                        collection.InsertOne(document);
+
                         MessageBox.Show("Konto założono poprawnie.", "Rejestracja zakończona", MessageBoxButton.OK);
                         var window = new LogIn();
                         Close();
@@ -65,6 +127,16 @@ namespace SoapClient.Windows.Authorization
                     }
                     catch (Exception ex)
                     {
+                        var collection = database.GetCollection<BsonDocument>("errors");
+                        var document = new BsonDocument
+                        {
+                            { "Title", "Rejestracja" },
+                            { "Content", ex.Message },
+                            { "Context", "Registration" },
+                            { "Date", DateTime.Now }
+                        };
+                        collection.InsertOne(document);
+
                         MessageBox.Show(ex.Message, "Błąd podczas rejestracji", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }

@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Windows;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows
 {
@@ -33,15 +35,36 @@ namespace SoapClient.Windows
 
         private void ReserveRoom(object sender, RoutedEventArgs e)
         {
+            const string connectionString = "mongodb://localhost:27017";
+            var clientDB = new MongoClient(connectionString);
+            var database = clientDB.GetDatabase("project");
             var from =  DateFromPicker.SelectedDate;
             if (!from.HasValue)
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Rezerwacja pokoju" },
+                    { "Content", "Wybierz datę początku rezerwacji" },
+                    { "Context", "ReservationView" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Wybierz datę początku rezerwacji.", "Nie wybrano daty", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             var to = DateToPicker.SelectedDate;
             if (!to.HasValue)
             {
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Rezerwacja pokoju" },
+                    { "Content", "Wybierz datę końca rezerwacji" },
+                    { "Context", "ReservationView" },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
                 MessageBox.Show("Wybierz datę końca rezerwacji.", "Nie wybrano daty", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -59,9 +82,36 @@ namespace SoapClient.Windows
                     reservationToAddRequest.userId = CurrentUser.AccountId;
                     var request = JsonConvert.SerializeObject(reservationToAddRequest);
                     var response = client.UploadString(BaseAddress + EndpointAddReservation, request);
+
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Rezerwacja pokoju" },
+                        { "Content", "Rezerwowanie pokoju zakończono pomyślnie" },
+                        { "Context", "ReservationView" },
+                        { "Data", new BsonDocument
+                            {
+                                { "RoomId", reservationToAddRequest.roomId },
+                                { "UserId", reservationToAddRequest.userId },
+                                { "ReservationFrom", reservationToAddRequest.reservationFrom },
+                                { "ReservationTo", reservationToAddRequest.reservationTo },
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                 }
                 catch (Exception ex)
                 {
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Rezerwacja pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "ReservationView" },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     MessageBox.Show(ex.Message, "Błąd rezerwacji pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }

@@ -11,6 +11,8 @@ using System.IO;
 using System.Net;
 using System.Windows;
 using System.Windows.Media;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows.Authorization
 {
@@ -40,7 +42,20 @@ namespace SoapClient.Windows.Authorization
                 PasswordTextBoxP.Password.Equals("Hasło") ||
                 PasswordTextBoxP.Password == null)
             {
-                MessageBox.Show("Błędny login lub hasło.", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                const string connectionString = "mongodb://localhost:27017";
+                var clientDB = new MongoClient(connectionString);
+                var database = clientDB.GetDatabase("project");
+                var collection = database.GetCollection<BsonDocument>("errors");
+                var document = new BsonDocument
+                {
+                    { "Title", "Błąd podczas logowania" },
+                    { "Content", "Błędny login lub hasło" },
+                    { "Context", "Login" },
+                    { "Data", LoginTextBox.Text },
+                    { "Date", DateTime.Now }
+                };
+                collection.InsertOne(document);
+                MessageBox.Show("Błędny login lub hasło.", "Błąd podczas logowania", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             else
@@ -82,10 +97,45 @@ namespace SoapClient.Windows.Authorization
                     var response = client.UploadString(BaseAddress + EndpointLogin, request);
                     var user = JsonConvert.DeserializeObject<LoginResponse>(response);
                     var account = new Account(user.id, user.userLogin, user.userName, user.userLastName, user.isAdmin);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Logowanie" },
+                        { "Content", "Logowanie użytkownika zakończono pomyślnie" },
+                        { "Context", "Login" },
+                        { "Data",
+                            new BsonDocument
+                                {
+                                    { "Id", user.id },
+                                    { "Login", user.userLogin },
+                                    { "Name", user.userName },
+                                    { "LastName", user.userLastName },
+                                    { "IsAdmin", user.isAdmin }
+                                }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     return account;
                 }
                 catch (Exception ex)
                 {
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Błąd podczas logowania" },
+                        { "Content", ex.Message },
+                        { "Context", "Login" },
+                        { "Data", login },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     MessageBox.Show(ex.Message, "Błąd podczas logowania", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
@@ -102,19 +152,49 @@ namespace SoapClient.Windows.Authorization
                     client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
-
+                    var hotelsId = new BsonArray();
                     var list = new List<Hotel>();
                     foreach (var item in hotels)
                     {
                         var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
                         list.Add(hotel);
+                        hotelsId.Add(item.id);
                     }
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", "Pobieranie hoteli zakończono pomyślnie" },
+                        { "Context", "Login" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelIds", hotelsId }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return list;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", ex.Message },
+                        { "Context", "Login" }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Data.ToString(), "Pobranie hoteli", MessageBoxButton.OK);
                     return new List<Hotel>();
                 }
             }
@@ -141,7 +221,7 @@ namespace SoapClient.Windows.Authorization
                     client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllUsers);
                     var user = JsonConvert.DeserializeObject<List<LoginResponse>>(response);
-
+                    var userIds = new BsonArray();
                     var list = new List<User>();
                     foreach (var item in user)
                     {
@@ -151,13 +231,43 @@ namespace SoapClient.Windows.Authorization
                             newUser.IsAdmin = true;
                         }
                         list.Add(newUser);
+                        userIds.Add(item.id);
                     }
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie użytkowników" },
+                        { "Content", "Pobieranie użytkowników zakończono pomyślnie" },
+                        { "Context", "Login" },
+                        { "Data", new BsonDocument
+                            {
+                                { "UserIds", userIds }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return list;
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.Message, "Błąd pobrania użytkowników", MessageBoxButton.OK, MessageBoxImage.Error);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie użytkowników" },
+                        { "Content", e.Message },
+                        { "Context", "Login" }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(e.Message, "Pobrania użytkowników", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }

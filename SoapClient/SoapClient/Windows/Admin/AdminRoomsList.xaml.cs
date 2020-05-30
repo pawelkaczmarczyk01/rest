@@ -10,6 +10,8 @@ using System.Net;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows.Admin
 {
@@ -49,12 +51,41 @@ namespace SoapClient.Windows.Admin
                     var response = client.DownloadString(BaseAddress + EndpointFindHotelById + HotelId.ToString());
                     var hotel = JsonConvert.DeserializeObject<HotelResponse>(response);
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie nazwy hotelu" },
+                        { "Content", "Pobieranie nazwy hotelu zakończono pomyślnie" },
+                        { "Context", "AdminRoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelName", hotel.hotelName }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return hotel.hotelName;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie nazwy hotelu" },
+                        { "Content", ex.Message },
+                        { "Context", "AdminRoomsList" },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Pobranie nazwy hotelu", MessageBoxButton.OK);
                     return "Hotel";
                 }
             }
@@ -106,11 +137,47 @@ namespace SoapClient.Windows.Admin
                        roomResponse.assortmentId.roomSafe,
                        roomResponse.assortmentId.roomTv);
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", "Pobieranie szczegółów pokoju zakończono pomyślnie" },
+                        { "Context", "AdminRoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "RoomId", roomId },
+                                { "HotelId", roomResponse.hotelId.id },
+                                { "RoomName",  roomResponse.roomName }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     return room;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "AdminRoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "RoomId", roomId },
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Pobranie szczegółów pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }
@@ -138,19 +205,49 @@ namespace SoapClient.Windows.Admin
                     client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
-
+                    var hotelsId = new BsonArray();
                     var list = new List<Hotel>();
                     foreach (var item in hotels)
                     {
                         var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
                         list.Add(hotel);
+                        hotelsId.Add(item.id);
                     }
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("admin");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", "Pobieranie hoteli zakończono pomyślnie" },
+                        { "Context", "AdminRoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelIds", hotelsId }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return list;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", ex.Message },
+                        { "Context", "AdminRoomsList" }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Data.ToString(), "Pobranie hoteli", MessageBoxButton.OK);
                     return new List<Hotel>();
                 }
             }
@@ -187,16 +284,67 @@ namespace SoapClient.Windows.Admin
                         ListOfRooms.Remove(room);
                         listOfRooms.ItemsSource = ListOfRooms;
                         listOfRooms.Items.Refresh();
-                        MessageBox.Show("Pomyślnie usunięto pokój!", "Usuwanie zakończone", MessageBoxButton.OK);
+                        const string connectionString = "mongodb://localhost:27017";
+                        var clientDB = new MongoClient(connectionString);
+                        var database = clientDB.GetDatabase("project");
+                        var collection = database.GetCollection<BsonDocument>("admin");
+                        var document = new BsonDocument
+                        {
+                            { "Title", "Usuwanie pokoju" },
+                            { "Content", "Usuwanie pokoju zakończono pomyślnie" },
+                            { "Context", "AdminRoomsList" },
+                            { "Data",  new BsonDocument
+                                {
+                                    { "RoomId", room.RoomId },
+                                }
+                            },
+                            { "Date", DateTime.Now }
+                        };
+                        collection.InsertOne(document);
+                        MessageBox.Show("Pomyślnie usunięto pokój!", "Usuwanie pokoju", MessageBoxButton.OK);
                         Close();
                     }
                     else
                     {
-                        MessageBox.Show("Nieznany błąd.", "Usuwanie anulowane", MessageBoxButton.OK, MessageBoxImage.Error);
+                        const string connectionString = "mongodb://localhost:27017";
+                        var clientDB = new MongoClient(connectionString);
+                        var database = clientDB.GetDatabase("project");
+                        var collection = database.GetCollection<BsonDocument>("admin");
+                        var document = new BsonDocument
+                        {
+                            { "Title", "Usuwanie pokoju" },
+                            { "Content", "Usuwanie pokoju anulowano. Nieznany błąd." },
+                            { "Context", "AdminRoomsList" },
+                            { "Data",  new BsonDocument
+                                {
+                                    { "RoomId", room.RoomId },
+                                }
+                            },
+                            { "Date", DateTime.Now }
+                        };
+                        collection.InsertOne(document);
+                        MessageBox.Show("Usuwanie pokoju anulowano. Nieznany błąd.", "Usuwanie pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 catch (Exception ex)
                 {
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Usuwanie pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "AdminRoomsList" },
+                        { "Data",  new BsonDocument
+                            {
+                                { "RoomId", room.RoomId },
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     MessageBox.Show(ex.Message, "Usuwanie anulowane", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }

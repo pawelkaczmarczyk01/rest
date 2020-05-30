@@ -10,6 +10,8 @@ using System.IO;
 using System.Net;
 using System.Windows;
 using System.Windows.Input;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows
 {
@@ -54,12 +56,41 @@ namespace SoapClient.Windows
                     var response = client.DownloadString(BaseAddress + EndpointFindHotelById + HotelId.ToString());
                     var hotel = JsonConvert.DeserializeObject<HotelResponse>(response);
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie nazwy hotelu" },
+                        { "Content", "Pobieranie nazwy hotelu zakończono pomyślnie" },
+                        { "Context", "RoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelName", hotel.hotelName }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return hotel.hotelName;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie nazwy hotelu" },
+                        { "Content", ex.Message },
+                        { "Context", "RoomsList" },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Pobranie nazwy hotelu", MessageBoxButton.OK);
                     return "Hotel";
                 }
             }
@@ -93,28 +124,65 @@ namespace SoapClient.Windows
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
                     var room = new RoomDetails(
-                        roomResponse.id,
-                        roomResponse.hotelId.id,
-                        roomResponse.roomName,
-                        roomResponse.roomDescription,
-                        ImageConversion(roomResponse.roomImagePath),
-                        roomResponse.roomPrice,
-                        roomResponse.roomQuantityOfPeople,
-                        roomResponse.assortmentId.roomBathroom,
-                        roomResponse.assortmentId.roomDesk,
-                        roomResponse.assortmentId.roomFridge,
-                        roomResponse.assortmentId.roomSafe,
-                        roomResponse.assortmentId.roomTv);
+                       roomResponse.id,
+                       roomResponse.hotelId.id,
+                       roomResponse.roomName,
+                       roomResponse.roomDescription,
+                       ImageConversion(roomResponse.roomImagePath),
+                       roomResponse.roomPrice,
+                       roomResponse.roomQuantityOfPeople,
+                       roomResponse.assortmentId.roomBathroom,
+                       roomResponse.assortmentId.roomDesk,
+                       roomResponse.assortmentId.roomFridge,
+                       roomResponse.assortmentId.roomSafe,
+                       roomResponse.assortmentId.roomTv);
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", "Pobieranie szczegółów pokoju zakończono pomyślnie" },
+                        { "Context", "RoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "RoomId", roomId },
+                                { "HotelId", roomResponse.hotelId.id },
+                                { "RoomName",  roomResponse.roomName }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     return room;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Błąd pobrania szczegółów pokoju", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie szczegółów pokoju" },
+                        { "Content", ex.Message },
+                        { "Context", "RoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "RoomId", roomId },
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Message, "Pobranie szczegółów pokoju", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }
@@ -154,25 +222,55 @@ namespace SoapClient.Windows
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
-
+                    var hotelsId = new BsonArray();
                     var list = new List<Hotel>();
                     foreach (var item in hotels)
                     {
                         var hotel = new Hotel(item.id, item.hotelName, ImageConversion(item.hotelImagePath));
                         list.Add(hotel);
+                        hotelsId.Add(item.id);
                     }
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", "Pobieranie hoteli zakończono pomyślnie" },
+                        { "Context", "RoomsList" },
+                        { "Data", new BsonDocument
+                            {
+                                { "HotelIds", hotelsId }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
 
                     return list;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Data.ToString(), "Błąd", MessageBoxButton.OK);
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie hoteli" },
+                        { "Content", ex.Message },
+                        { "Context", "RoomsList" }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(ex.Data.ToString(), "Pobranie hoteli", MessageBoxButton.OK);
                     return new List<Hotel>();
                 }
             }
-
         }
     }
 }

@@ -9,6 +9,8 @@ using System.IO;
 using System.Net;
 using System.Windows;
 using System.Windows.Input;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace SoapClient.Windows
 {
@@ -54,22 +56,60 @@ namespace SoapClient.Windows
             {
                 try
                 {
-                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json")
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
                     client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + hotelId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
                     var list = new List<Room>();
+                    var roomIds = new BsonArray();
                     foreach (var item in roomResponse)
                     {
                         var room = new Room(item.id, item.roomName, item.roomDescription, ImageConversion(item.roomImagePath), item.roomPrice);
                         list.Add(room);
+                        roomIds.Add(item.id);
                     }
 
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("user");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie pokoi" },
+                        { "Content", "Pobieranie pokoi zakończono pomyślnie" },
+                        { "Context", "HotelsList" },
+                        { "Data",  new BsonDocument
+                            {
+                                { "HotelId", hotelId },
+                                { "RoomIds", roomIds }
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
                     return list;
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.Message, "Błąd pobrania pokoi", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    const string connectionString = "mongodb://localhost:27017";
+                    var clientDB = new MongoClient(connectionString);
+                    var database = clientDB.GetDatabase("project");
+                    var collection = database.GetCollection<BsonDocument>("errors");
+                    var document = new BsonDocument
+                    {
+                        { "Title", "Pobranie pokoi" },
+                        { "Content", e.Message },
+                        { "Context", "HotelsList" },
+                        { "Data",  new BsonDocument
+                            {
+                                { "HotelId", hotelId },
+                            }
+                        },
+                        { "Date", DateTime.Now }
+                    };
+                    collection.InsertOne(document);
+                    MessageBox.Show(e.Message, "Pobranie pokoi", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }
