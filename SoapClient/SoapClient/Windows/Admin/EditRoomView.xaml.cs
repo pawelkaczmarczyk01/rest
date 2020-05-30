@@ -36,6 +36,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
@@ -80,6 +81,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
@@ -232,6 +234,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var roomToUpdateRequest = new RoomToUpdateRequest();
                     roomToUpdateRequest.roomName = RoomName.Text;
                     roomToUpdateRequest.roomDescription = RoomDescription.Text;

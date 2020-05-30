@@ -55,6 +55,7 @@ namespace SoapClient.Windows.Authorization
                     try
                     {
                         client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                        client.Encoding = System.Text.Encoding.UTF8;
                         var request = JsonConvert.SerializeObject(new RegistrationUser(NameTextBox.Text, SurnameTextBox.Text, LoginTextBox.Text, PasswordTextBoxP.Password, RepeatPasswordTextBoxP.Password));
                         client.UploadString(Endpoint + EndpointAdd, request);
                         MessageBox.Show("Konto założono poprawnie.", "Rejestracja zakończona", MessageBoxButton.OK);

@@ -75,6 +75,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointReservation);
                     var reservations = JsonConvert.DeserializeObject<List<ReservationResponse>>(response);
 
@@ -125,6 +126,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointFindRoomById + roomId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<RoomByHotelIdResponse>(response);
 
@@ -172,6 +174,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointReservationByUserId + userId.ToString());
                     var reservationResponse = JsonConvert.DeserializeObject<List<ReservationResponse>>(response);
                     var list = new List<ReservationByUser>();
@@ -269,6 +272,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + hotelId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
                     var list = new List<Room>();
@@ -307,6 +311,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
@@ -333,6 +338,7 @@ namespace SoapClient.Windows.Admin
             {
                 try
                 {
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllUsers);
                     var user = JsonConvert.DeserializeObject<List<LoginResponse>>(response);
 
@@ -493,6 +499,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var hotelToAddRequest = new HotelToAddRequest(HotelName.Text, HotelImageName.Text);
                     var request = JsonConvert.SerializeObject(hotelToAddRequest);
                     client.UploadString(BaseAddress + EndpointAddHotel, request);
@@ -562,6 +569,7 @@ namespace SoapClient.Windows.Admin
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var roomToAddRequest = new RoomToAddRequest();
                     roomToAddRequest.roomName = RoomName.Text;
                     roomToAddRequest.roomDescription = RoomDescription.Text;
@@ -599,6 +607,7 @@ namespace SoapClient.Windows.Admin
                     SaveImage(ImageRoomPath, RoomImageName.Text);
 
 
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var request = JsonConvert.SerializeObject(roomToAddRequest);
                     client.UploadString(BaseAddress + EndpointAddRoom, request);
 

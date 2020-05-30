@@ -54,7 +54,8 @@ namespace SoapClient.Windows
             {
                 try
                 {
-                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json")
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointAllRoomFindByHotelId + hotelId.ToString());
                     var roomResponse = JsonConvert.DeserializeObject<List<RoomByHotelIdResponse>>(response);
                     var list = new List<Room>();

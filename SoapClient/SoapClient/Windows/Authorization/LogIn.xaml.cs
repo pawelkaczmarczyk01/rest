@@ -17,7 +17,7 @@ namespace SoapClient.Windows.Authorization
 
     public partial class LogIn : Window
     {
-        private readonly string Resources = "F:\\git\\rest\\SoapClient\\SoapClient\\Resources";
+        private readonly string Resources = "D:\\GitHub\\rest\\SoapClient\\SoapClient\\Resources";
         private readonly string BaseAddress = "http://localhost:8080/";
         private readonly string EndpointLogin = "auth/login";
         private readonly string EndpointGetAllUsers = "user/findAll";
@@ -77,6 +77,7 @@ namespace SoapClient.Windows.Authorization
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var request = JsonConvert.SerializeObject(new LoginRequest(login, password));
                     var response = client.UploadString(BaseAddress + EndpointLogin, request);
                     var user = JsonConvert.DeserializeObject<LoginResponse>(response);
@@ -98,6 +99,7 @@ namespace SoapClient.Windows.Authorization
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllHotels);
                     var hotels = JsonConvert.DeserializeObject<List<HotelResponse>>(response);
 
@@ -135,6 +137,8 @@ namespace SoapClient.Windows.Authorization
             {
                 try
                 {
+                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var response = client.DownloadString(BaseAddress + EndpointGetAllUsers);
                     var user = JsonConvert.DeserializeObject<List<LoginResponse>>(response);
 

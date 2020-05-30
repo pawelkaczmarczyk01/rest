@@ -51,6 +51,7 @@ namespace SoapClient.Windows
                 try
                 {
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
                     var reservationToAddRequest = new ReservationToAddRequest();
                     reservationToAddRequest.roomId = RoomId;
                     reservationToAddRequest.reservationFrom = from.Value;
